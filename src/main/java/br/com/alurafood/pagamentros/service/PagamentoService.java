@@ -1,5 +1,7 @@
 package br.com.alurafood.pagamentros.service;
 
+import java.util.Optional;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -7,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import br.com.alurafood.pagamentros.dto.PagamentoDTO;
+import br.com.alurafood.pagamentros.http.PedidoClient;
 import br.com.alurafood.pagamentros.model.Pagamento;
 import br.com.alurafood.pagamentros.model.Status;
 import br.com.alurafood.pagamentros.repository.PagamentoRepository;
@@ -20,6 +23,9 @@ public class PagamentoService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    private PedidoClient pedido;
 
     public Page<PagamentoDTO> listar(Pageable paginacao) {
         return repository
@@ -52,5 +58,17 @@ public class PagamentoService {
 
     public void deletar(Long id) {
         repository.deleteById(id);
+    }
+
+    public void confirmarPagamento(Long id){
+        Optional<Pagamento> pagamento = repository.findById(id);
+
+        if (pagamento.isEmpty()) {
+            throw new EntityNotFoundException();
+        }
+
+        pagamento.get().setStatus(Status.CONFIRMADO);
+        repository.save(pagamento.get());
+        pedido.atualizaPagamento(pagamento.get().getPedidoId());
     }
 }
